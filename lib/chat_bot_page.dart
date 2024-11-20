@@ -101,25 +101,37 @@ class _ChatBotPageState extends State<ChatBotPage> {
   }
 
   Future<void> _sendImageToApi(XFile image) async {
-    final String apiUrl = 'https://your-api-endpoint.com/predict';
-
-    var request = http.MultipartRequest('POST', Uri.parse(apiUrl));
-    request.files.add(await http.MultipartFile.fromPath('image', image.path));
+    final String apiUrl = 'https://monkeypox-etz2.onrender.com/predict';
 
     try {
-      var response = await request.send();
-      if (response.statusCode == 200) {
-        var responseData = await response.stream.toBytes();
-        var responseString = String.fromCharCodes(responseData);
-        var jsonResponse = json.decode(responseString);
+      var request = http.MultipartRequest('POST', Uri.parse(apiUrl));
+      var file = await http.MultipartFile.fromPath('file', image.path);
+      request.files.add(file);
 
-        String prediction = jsonResponse['prediction'];
-        _addBotMessage("Based on the image analysis, $prediction");
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        var jsonResponse = json.decode(response.body);
+        String predictedClass = jsonResponse['predicted_class'];
+        double confidence = jsonResponse['confidence'];
+
+        // Format confidence as percentage with 2 decimal places
+        String confidencePercent = (confidence * 100).toStringAsFixed(2);
+
+        _addBotMessage("Based on the image analysis:\n"
+            "• Diagnosis: $predictedClass\n"
+            "• Confidence: $confidencePercent%\n\n"
+            "Please note that this is an AI-based assessment and should not replace professional medical advice.");
       } else {
-        _addBotMessage("Failed to analyze the image. Please try again.");
+        _addBotMessage(
+            "Failed to analyze the image (Status: ${response.statusCode}). Please try again with a different image.");
       }
-    } catch (e) {
-      _addBotMessage("An error occurred: $e");
+    } catch (e, stackTrace) {
+      print('Error: $e');
+      print('Stack trace: $stackTrace');
+      _addBotMessage(
+          "Sorry, there was an error processing the image. Please try again.");
     }
   }
 
@@ -148,12 +160,13 @@ class _ChatBotPageState extends State<ChatBotPage> {
                       constraints: BoxConstraints(
                         maxWidth: MediaQuery.of(context).size.width * 0.7,
                       ),
-                      margin: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                      padding: EdgeInsets.all(8),
+                      margin: const EdgeInsets.symmetric(
+                          vertical: 4, horizontal: 8),
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: isUserMessage
-                            ? Color(0xFF90CAF9)
-                            : Color(0xFFFFFFFF),
+                            ? const Color(0xFF90CAF9)
+                            : const Color(0xFFFFFFFF),
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
@@ -170,7 +183,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
                               style: TextStyle(
                                 color: isUserMessage
                                     ? Colors.black87
-                                    : Color(0xFF1E88E5),
+                                    : const Color(0xFF1E88E5),
                               ),
                             ),
                     ),
@@ -185,7 +198,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
             child: Row(
               children: <Widget>[
                 IconButton(
-                  icon: Icon(Icons.image, color: Color(0xFF1E88E5)),
+                  icon: const Icon(Icons.image, color: Color(0xFF1E88E5)),
                   onPressed: _uploadImage,
                 ),
                 Expanded(
@@ -195,12 +208,12 @@ class _ChatBotPageState extends State<ChatBotPage> {
                       hintText: 'Enter your message',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
-                        borderSide: BorderSide(color: Color(0xFF1E88E5)),
+                        borderSide: const BorderSide(color: Color(0xFF1E88E5)),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
-                        borderSide:
-                            BorderSide(color: Color(0xFF1E88E5), width: 2),
+                        borderSide: const BorderSide(
+                            color: Color(0xFF1E88E5), width: 2),
                       ),
                     ),
                     onSubmitted: (text) {
@@ -212,7 +225,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
                   ),
                 ),
                 IconButton(
-                  icon: Icon(Icons.send, color: Color(0xFF1E88E5)),
+                  icon: const Icon(Icons.send, color: Color(0xFF1E88E5)),
                   onPressed: () {
                     if (_controller.text.isNotEmpty) {
                       _addUserMessage(_controller.text);
